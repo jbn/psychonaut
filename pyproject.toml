@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "psychonaut"
+version = "0.0.1"
+description = ""
+authors = ["generativist <jbn@abreka.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aiohttp = "^3.8.4"
+pydantic = "^1.10.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
