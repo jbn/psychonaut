@@ -64,7 +64,7 @@ async def get_profiles(actors: List[str]):
         req = GetProfilesReq(actors=actors)
         resp = await get_profiles_f(sess, req)
         for profile in resp.profiles:
-            print(resp.json())
+            print(profile)
 
 @cli.command()
 @click.argument("handle")
