@@ -41,9 +41,13 @@ to use it as a library. This also installs the `psychonaut` command line tool.
 ```bash
 psychonaut --help
 
-
+# Temporary login
 export BSKY_USERNAME=yourusername
 export BSKY_PASSWORD=yourpassword
+
+# Permanent login (~/.psychonaut.json)
+psychonaut save-login yourusername 
+
 psychonaut poast "hey look, an annoying cron job"
 ```
 

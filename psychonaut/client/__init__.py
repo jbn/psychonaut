@@ -4,10 +4,15 @@ import os
 import aiohttp
 from psychonaut.api.session import Session, SessionFactory
 from dotenv import load_dotenv
+from pathlib import Path
+import json
 
 
 @asynccontextmanager
-async def get_simple_client_session(inject_dot_env: bool=True) -> Session:
+async def get_simple_client_session(
+    inject_dot_env: bool = True, 
+    allow_homedir_creds: bool = True
+) -> Session:
     """
     Initialize a simple client session for use with the api.
 
@@ -18,8 +23,18 @@ async def get_simple_client_session(inject_dot_env: bool=True) -> Session:
     if inject_dot_env:
         load_dotenv()
 
-    username = os.getenv("BSKY_USERNAME", "generativist")
-    password = os.getenv("BSKY_PASSWORD", "password")
+    username = os.getenv("BSKY_USERNAME", "")
+    password = os.getenv("BSKY_PASSWORD", "")
+
+    # attempt to lookup ~/.bsky.json for credentials
+    if allow_homedir_creds and not username and not password:
+        cred_path = Path.home() / ".psychonaut.json"
+        if cred_path.exists():
+            with cred_path.open("r") as fp:
+                cred = json.load(fp)
+                username = cred["username"]
+                password = cred["password"]
+
     if not username or not password:
         raise ValueError(
             "BSKY_USERNAME and BSKY_PASSWORD must be set in the environment or .env file"
@@ -34,5 +49,3 @@ async def get_simple_client_session(inject_dot_env: bool=True) -> Session:
             http_session=sess,
         )
         yield await factory.create(username=username, password=password)
-
-

@@ -1,5 +1,7 @@
 from datetime import datetime
+import json
 import os
+from pathlib import Path
 import sys
 from typing import List
 import click
@@ -63,6 +65,29 @@ async def get_profiles(actors: List[str]):
         resp = await get_profiles_f(sess, req)
         for profile in resp.profiles:
             print(resp.json())
+
+@cli.command()
+@click.argument("handle")
+@click.option("--allow-overwrite", is_flag=True, default=False)
+def save_login(handle: str, allow_overwrite: bool):
+    file_path = Path().home() / ".psychonaut.json"
+
+    if file_path.exists() and not allow_overwrite:
+        print(f"File {file_path} exists, use --allow-overwrite to overwrite")
+        sys.exit(1)
+
+    # read the password
+    password = click.prompt(f"Enter password for {handle}", hide_input=True)
+
+    # write the file
+    file_path.write_text(
+        json.dumps(
+            {
+                "username": handle,
+                "password": password,
+            }
+        )
+    )
 
 
 # TODO: test poetry install
