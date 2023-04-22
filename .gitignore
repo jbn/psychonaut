@@ -7,3 +7,5 @@ __pycache__
 graph.jsonl
 graph_tasks.db
 .coverage
+streams/
+
