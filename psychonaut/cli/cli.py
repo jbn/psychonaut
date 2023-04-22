@@ -5,8 +5,14 @@ from typing import List
 import click
 import asyncio
 from functools import wraps
-from psychonaut.api.lexicons.app.bsky.actor.get_profiles import GetProfilesReq, get_profiles as get_profiles_f
-from psychonaut.api.lexicons.com.atproto.identity.resolve_handle import ResolveHandleReq, resolve_handle as resolve_handle_f
+from psychonaut.api.lexicons.app.bsky.actor.get_profiles import (
+    GetProfilesReq,
+    get_profiles as get_profiles_f,
+)
+from psychonaut.api.lexicons.com.atproto.identity.resolve_handle import (
+    ResolveHandleReq,
+    resolve_handle as resolve_handle_f,
+)
 from psychonaut.client import get_simple_client_session
 from psychonaut.api.lexicons.app.bsky.feed.post import PostReq, post
 
@@ -15,7 +21,9 @@ def as_async(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
+
     return wrapper
+
 
 @click.group()
 def cli():
@@ -29,7 +37,8 @@ async def poast(text: str):
     async with get_simple_client_session() as sess:
         req = PostReq(text=text, createdAt=datetime.utcnow().isoformat())
         resp = await post(sess, req)
-        print(resp.json())
+        print(resp)
+
 
 @cli.command()
 @click.argument("handle")
@@ -57,5 +66,5 @@ async def get_profiles(actors: List[str]):
 
 
 # TODO: test poetry install
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

@@ -32,6 +32,7 @@ implementation, or the quality of the documentation.
 If you want to use it, go ahead,
 
 ```bash
+# In your venv or mamba env or whatever
 pip install psychonaut
 ```
 
@@ -48,7 +49,16 @@ psychonaut poast "hey look, an annoying cron job"
 
 But definitely be mindful of the version because I'm going to break your code.
 
-todo: [pipx version](https://pypa.github.io/pipx/)
+Alternatively, just use [pipx](https://pypa.github.io/pipx/)
+
+```bash
+pipx install psychonaut
+
+export BSKY_USERNAME=yourusername
+export BSKY_PASSWORD=yourpassword
+
+psychonaut poast "hell yea, pipx"
+```
 
 # How is this made?
 
