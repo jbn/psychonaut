@@ -1,4 +1,4 @@
-![Tests](https://github.com/jbn/psychonaut/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/jbn/psychonaut/actions/workflows/test.yaml/badge.svg)
 
 
 ![Psychonaut helmet](./psychonaut_logo.png "A helmet for the psychonaut")
