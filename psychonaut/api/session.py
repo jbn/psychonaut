@@ -49,6 +49,26 @@ class Session:
 
                 return doc
 
+    async def _post_blob_kludge(self, data: bytes, content_type: str) -> Dict[Any, Any]:
+        endpoint = self.factory.atp_host + "/xrpc/com.atproto.repo.uploadBlob"
+        headers = {
+            "Authorization": f"Bearer {self.access_jwt}",
+            "Content-Type": content_type,
+        }
+
+        async with retires_on_timeout():
+            async with self.http.post(
+                endpoint, headers=headers, timeout=60, data=data
+            ) as resp:
+                resp.raise_for_status()
+
+                doc = await resp.json()
+
+                if "error" in doc:
+                    raise Exception(doc["error"])
+
+                return doc
+
     async def record(self, req) -> Dict[Any, Any]:
         endpoint = self.factory.atp_host + "/xrpc/com.atproto.repo.createRecord"
         headers = {"Authorization": f"Bearer {self.access_jwt}"}
