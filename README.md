@@ -64,6 +64,28 @@ export BSKY_PASSWORD=yourpassword
 psychonaut poast "hell yea, pipx"
 ```
 
+### Firehose
+
+**EXTREMELY EXPERIMENTAL AND STILL NOT FINISHED**
+
+`repos-firehose-stream` saves the raw messages for subsequent replay so you
+can at least collect now and i'll get the json emit / validation working
+later.
+
+```bash
+# Stream the firehose
+psychonaut repos-firehose-stream stream_dir
+
+# Stream the firehose but print to stdout too
+psychonaut repos-firehose-stream --tee stream_dir
+
+# Replay serialized
+psychonaut repos-firehose-replay stream_dir
+
+# Replay serialized file
+psychonaut repos-firehose-replay stream_dir/your_stream.b64-lines
+```
+
 # How is this made?
 
 This is a collaboration between the [atproto repo](https://github.com/bluesky-social/atproto),
