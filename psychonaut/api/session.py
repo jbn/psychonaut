@@ -34,7 +34,9 @@ class Session:
         endpoint = self.factory.atp_host + f"/xrpc/{req.xrpc_id}"
 
         # TODO: when?
-        headers = {"Authorization": f"Bearer {self.access_jwt}"}
+        headers = {}
+        if not req.xrpc_id.startswith("com.atproto."):
+            headers = {"Authorization": f"Bearer {self.access_jwt}"}
         params = req.dict(exclude_none=True)
         #headers = None
 
