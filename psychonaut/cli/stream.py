@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import sys
 import click
 import websockets
 import base64
@@ -8,10 +9,11 @@ import time
 from psychonaut.firehose.serde import (
     read_first_block,
     stream_to_stdout,
-    _json_encode_kludge
+    _json_encode_kludge,
 )
 from .group import cli
 from .util import as_async, print_error_and_fail
+import asyncio
 
 
 @cli.command()
@@ -19,8 +21,18 @@ from .util import as_async, print_error_and_fail
 @click.option("--tee", is_flag=True, help="Write to stdout as well as file")
 @as_async
 async def repos_firehose_stream(output_dir: str, tee: bool):
-    callbacks = []
+    try:
+        await _stream_run(output_dir, tee)
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        # Sleep for 10 seconds and continue
+        print(f"Error: {e}", file=sys.stderr)
+        await asyncio.sleep(10)
 
+
+async def _stream_run(output_dir: str, tee: bool):
+    callbacks = []
     if tee:
 
         def stdout_callback(msg, first_block):

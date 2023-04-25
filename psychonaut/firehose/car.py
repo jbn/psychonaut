@@ -7,6 +7,7 @@ https://github.com/ipfs/go-block-format/blob/master/blocks_test.go
 https://github.com/ipld/go-car/blob/164c23bc8c01a3482a8be9c75631425239fda8c6/util/util.go#L113
 https://github.com/ipfs/go-cid/blob/d46e7f28669cd2c463bc68fe86e7dbe4f8240ab7/cid.go
 """
+import dag_cbor
 from multiformats.multihash import get
 import io
 import cbor2
@@ -84,7 +85,8 @@ def _read_block(reader: io.BufferedReader, validate=True) -> CID:
 
     if validate and mhd[2:] != hash_digest:
         raise IOError(f"Multihash digest does not match: {mhd} != {hash_digest}")
-    return cbor2.loads(data)
+    return dag_cbor.decode(data)
+    #return cbor2.loads(data, tag_hook=cbor_decoder)
 
 
 def _read_uvarint(reader: io.BufferedReader) -> int:
