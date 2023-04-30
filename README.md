@@ -9,12 +9,13 @@
 - [x] Parse the Lexicons with PyDantic
 - [ ] Generate code from the Lexicons
     - [x] Generate files
-    - [ ] Generate Fields from full Lexicon spec
+    - [x] Generate Fields from full Lexicon spec
         - [x] Generate code for queries
-        - [ ] Generate code for records
-        - [ ] Generate code for the procedures
-    - [ ] Generate f: (Session, Req) -> Resp helper functions
-- [ ] Exponential backoff
+        - [x] Generate code for records
+        - [x] Generate code for the procedures
+    - [x] Generate f: (Session, Req) -> Resp helper functions
+    - [ ] Finish validations for references
+- [x] Exponential backoff
 
 # What is this?
 
