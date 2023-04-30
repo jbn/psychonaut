@@ -1,6 +1,21 @@
+from typing import Any, Optional, List
 from pydantic import BaseModel, Field
-from typing import Optional, List, Any
 from psychonaut.api.session import Session
+
+
+class Links(BaseModel):
+    """
+    [none provided by spec]
+    """
+
+    privacyPolicy: Optional[str] = Field(default=None)
+    termsOfService: Optional[str] = Field(default=None)
+
+
+class DescribeServerResp(BaseModel):
+    inviteCodeRequired: Optional[bool] = Field(default=None)
+    availableUserDomains: List[str] = Field(...)
+    links: Optional[Links] = None
 
 
 class DescribeServerReq(BaseModel):
@@ -10,19 +25,8 @@ class DescribeServerReq(BaseModel):
 
     @property
     def xrpc_id(self) -> str:
-       return "com.atproto.server.describeServer"
+        return "com.atproto.server.describeServer"
 
-
-class DescribeServerResp(BaseModel):
-    inviteCodeRequired: Optional[bool] = Field(default=None)
-    availableUserDomains: List[str] = Field(...)
-    links: Optional[Any] = None
-
-    @property
-    def xrpc_id(self) -> str:
-       return "com.atproto.server.describeServer"
-
-
-async def describe_server(sess: Session, req: DescribeServerReq) -> DescribeServerResp:
-    resp = await sess.query(req)
-    return DescribeServerResp(**resp)
+    async def do_xrpc(self, sess: Session) -> DescribeServerResp:
+        resp = await sess.query(self)
+        return DescribeServerResp(**resp)

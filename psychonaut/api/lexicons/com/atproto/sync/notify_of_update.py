@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from typing import Any
 from psychonaut.api.session import Session
-from typing import Optional, Any
+from pydantic import BaseModel, Field
 
 
 class NotifyOfUpdateReq(BaseModel):
@@ -9,12 +9,14 @@ class NotifyOfUpdateReq(BaseModel):
     between updates causes the connection with the crawling service to
     break.
     """
-    hostname: str = Field(..., description='Hostname of the service that is notifying of update.')
+
+    hostname: str = Field(
+        ..., description="Hostname of the service that is notifying of update."
+    )
 
     @property
     def xrpc_id(self) -> str:
-       return "com.atproto.sync.notifyOfUpdate"
+        return "com.atproto.sync.notifyOfUpdate"
 
-
-async def notify_of_update(sess: Session, req: NotifyOfUpdateReq) -> Any:
-    return await sess.query(req)
+    async def do_xrpc(self, sess: Session) -> Any:
+        return await sess.query(self)

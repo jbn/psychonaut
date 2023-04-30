@@ -1,18 +1,20 @@
-from pydantic import BaseModel, Field
+from typing import Any
 from psychonaut.api.session import Session
-from typing import Optional, Any
+from pydantic import BaseModel, Field
 
 
 class RequestCrawlReq(BaseModel):
     """
     Request a service to persistently crawl hosted repos.
     """
-    hostname: str = Field(..., description='Hostname of the service that is requesting to be crawled.')
+
+    hostname: str = Field(
+        ..., description="Hostname of the service that is requesting to be crawled."
+    )
 
     @property
     def xrpc_id(self) -> str:
-       return "com.atproto.sync.requestCrawl"
+        return "com.atproto.sync.requestCrawl"
 
-
-async def request_crawl(sess: Session, req: RequestCrawlReq) -> Any:
-    return await sess.query(req)
+    async def do_xrpc(self, sess: Session) -> Any:
+        return await sess.query(self)

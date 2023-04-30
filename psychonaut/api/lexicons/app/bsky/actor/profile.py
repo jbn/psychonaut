@@ -1,9 +1,12 @@
+from typing import Any, Optional
 from pydantic import BaseModel, Field
-from psychonaut.api.session import Session
-from typing import Optional, Any
 
 
-class ProfileReq(BaseModel):
+class Profile(BaseModel):
+    """
+    [none provided by spec]
+    """
+
     displayName: Optional[str] = Field(default=None, max_length=640)
     description: Optional[str] = Field(default=None, max_length=2560)
     avatar: Optional[Any] = None
@@ -11,8 +14,4 @@ class ProfileReq(BaseModel):
 
     @property
     def xrpc_id(self) -> str:
-       return "app.bsky.actor.profile"
-
-
-async def profile(sess: Session, req: ProfileReq) -> Any:
-    return await sess.record(req)
+        return "app.bsky.actor.profile"

@@ -1,17 +1,17 @@
+from typing import Any
 from pydantic import BaseModel, Field
+from psychonaut.api.lexicons.com.atproto.repo.strong_ref import StrongRef
 from psychonaut.lexicon.formats import validate_datetime
-from psychonaut.api.session import Session
-from typing import Optional, Any
 
 
-class LikeReq(BaseModel):
-    subject: Any
+class Like(BaseModel):
+    """
+    [none provided by spec]
+    """
+
+    subject: StrongRef
     createdAt: str = Field(..., pre=True, validator=validate_datetime)
 
     @property
     def xrpc_id(self) -> str:
-       return "app.bsky.feed.like"
-
-
-async def like(sess: Session, req: LikeReq) -> Any:
-    return await sess.record(req)
+        return "app.bsky.feed.like"

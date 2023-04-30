@@ -1,29 +1,26 @@
-from pydantic import BaseModel, Field
+from typing import Any, Optional
+from psychonaut.api.lexicons.app.bsky.actor.defs import ProfileView
 from psychonaut.api.session import Session
-from typing import Optional, Any
-
-
-class GetSuggestionsReq(BaseModel):
-    """
-    Get a list of actors suggested for following. Used in discovery UIs.
-    """
-    limit: Optional[int] = Field(default=50, ge=1, le=100)
-    cursor: Optional[str] = Field(default=None)
-
-    @property
-    def xrpc_id(self) -> str:
-       return "app.bsky.actor.getSuggestions"
+from pydantic import BaseModel, Field
 
 
 class GetSuggestionsResp(BaseModel):
     cursor: Optional[str] = Field(default=None)
     actors: Any
 
+
+class GetSuggestionsReq(BaseModel):
+    """
+    Get a list of actors suggested for following. Used in discovery UIs.
+    """
+
+    limit: Optional[int] = Field(default=50, ge=1, le=100)
+    cursor: Optional[str] = Field(default=None)
+
     @property
     def xrpc_id(self) -> str:
-       return "app.bsky.actor.getSuggestions"
+        return "app.bsky.actor.getSuggestions"
 
-
-async def get_suggestions(sess: Session, req: GetSuggestionsReq) -> GetSuggestionsResp:
-    resp = await sess.query(req)
-    return GetSuggestionsResp(**resp)
+    async def do_xrpc(self, sess: Session) -> GetSuggestionsResp:
+        resp = await sess.query(self)
+        return GetSuggestionsResp(**resp)

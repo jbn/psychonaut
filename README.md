@@ -14,6 +14,7 @@
         - [ ] Generate code for records
         - [ ] Generate code for the procedures
     - [ ] Generate f: (Session, Req) -> Resp helper functions
+- [ ] Exponential backoff
 
 # What is this?
 

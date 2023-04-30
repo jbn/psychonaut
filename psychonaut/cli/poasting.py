@@ -4,7 +4,7 @@ import click
 from psychonaut.cli.group import cli
 from psychonaut.cli.util import as_async
 from psychonaut.client import get_simple_client_session
-from psychonaut.api.lexicons.app.bsky.feed.post import PostReq, post
+from psychonaut.api.lexicons.app.bsky.feed.post import Post
 # from psychonaut.api.lexicons.com.atproto.repo.upload_blob import (
 #     UploadBlobReq,
 #     upload_blob as upload_blob_f,
@@ -27,7 +27,7 @@ async def poast(text: str, image: Tuple[str]):
                 return
 
     async with get_simple_client_session() as sess:
-        req = PostReq(text=text, createdAt=datetime.utcnow().isoformat())
+        req = Post(text=text, createdAt=datetime.utcnow().isoformat())
 
         if image:
             images = []
@@ -58,7 +58,7 @@ async def poast(text: str, image: Tuple[str]):
             }
             req = req.copy(update={"embed": embed})
 
-        resp = await post(sess, req)
+        resp = await sess.record(req)
         print(resp)
 
 

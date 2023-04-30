@@ -1,28 +1,25 @@
-from pydantic import BaseModel, Field
+from typing import Any, Optional
+from psychonaut.api.lexicons.com.atproto.server.defs import InviteCode
 from psychonaut.api.session import Session
-from typing import Optional, Any
+from pydantic import BaseModel, Field
+
+
+class GetAccountInviteCodesResp(BaseModel):
+    codes: Any
 
 
 class GetAccountInviteCodesReq(BaseModel):
     """
     Get all invite codes for a given account
     """
+
     includeUsed: Optional[bool] = Field(default=True)
     createAvailable: Optional[bool] = Field(default=True)
 
     @property
     def xrpc_id(self) -> str:
-       return "com.atproto.server.getAccountInviteCodes"
+        return "com.atproto.server.getAccountInviteCodes"
 
-
-class GetAccountInviteCodesResp(BaseModel):
-    codes: Any
-
-    @property
-    def xrpc_id(self) -> str:
-       return "com.atproto.server.getAccountInviteCodes"
-
-
-async def get_account_invite_codes(sess: Session, req: GetAccountInviteCodesReq) -> GetAccountInviteCodesResp:
-    resp = await sess.query(req)
-    return GetAccountInviteCodesResp(**resp)
+    async def do_xrpc(self, sess: Session) -> GetAccountInviteCodesResp:
+        resp = await sess.query(self)
+        return GetAccountInviteCodesResp(**resp)

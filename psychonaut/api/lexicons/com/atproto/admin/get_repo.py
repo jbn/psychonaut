@@ -1,19 +1,19 @@
+from typing import Any
+from psychonaut.api.session import Session
 from pydantic import BaseModel, Field
 from psychonaut.lexicon.formats import validate_did
-from psychonaut.api.session import Session
-from typing import Optional, Any
 
 
 class GetRepoReq(BaseModel):
     """
     View details about a repository.
     """
+
     did: str = Field(..., pre=True, validator=validate_did)
 
     @property
     def xrpc_id(self) -> str:
-       return "com.atproto.admin.getRepo"
+        return "com.atproto.admin.getRepo"
 
-
-async def get_repo(sess: Session, req: GetRepoReq) -> Any:
-    return await sess.query(req)
+    async def do_xrpc(self, sess: Session) -> Any:
+        return await sess.query(self)

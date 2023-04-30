@@ -1,0 +1,7 @@
+class TestReq(BaseModel):
+    """
+    test 1
+    """
+    a_bool: bool = Field(default=True, description='A boolean')
+    an_int: Optional[int] = Field(default=42, description='An integer', ge=0, le=100)
+    a_string: Optional[str] = Field(default=None, description='A string', max_length=100)

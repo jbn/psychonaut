@@ -1,16 +1,19 @@
+from typing import Any
+from psychonaut.api.session import Session
 from pydantic import BaseModel, Field
 from psychonaut.lexicon.formats import validate_at_identifier
-from psychonaut.api.session import Session
-from typing import Optional, Any
 
 
 class GetProfileReq(BaseModel):
+    """
+    [none provided by spec]
+    """
+
     actor: str = Field(..., pre=True, validator=validate_at_identifier)
 
     @property
     def xrpc_id(self) -> str:
-       return "app.bsky.actor.getProfile"
+        return "app.bsky.actor.getProfile"
 
-
-async def get_profile(sess: Session, req: GetProfileReq) -> Any:
-    return await sess.query(req)
+    async def do_xrpc(self, sess: Session) -> Any:
+        return await sess.query(self)

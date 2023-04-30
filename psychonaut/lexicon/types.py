@@ -13,15 +13,19 @@ from psychonaut.nsid import NSID
 
 # TODO: forbid extra?
 
+class _BaseLex(BaseModel):
+    class Config:
+        extra = "forbid"
 
-class LexBoolean(BaseModel):
+
+class LexBoolean(_BaseLex):
     type: str = Field("boolean", const=True)
     description: Optional[str]
     default: Optional[bool]
     const: Optional[bool]
 
 
-class LexInteger(BaseModel):
+class LexInteger(_BaseLex):
     type: str = Field("integer", const=True)
     description: Optional[str]
     default: Optional[int]
@@ -42,7 +46,7 @@ class LexStringFormat(str):
     cid = "cid"
 
 
-class LexString(BaseModel):
+class LexString(_BaseLex):
     type: str = Field("string", const=True)
     format: Optional[LexStringFormat]
     description: Optional[str]
@@ -56,7 +60,7 @@ class LexString(BaseModel):
     known_values: Optional[List[str]] = Field(None, alias="knownValues")
 
 
-class LexUnknown(BaseModel):
+class LexUnknown(_BaseLex):
     type: str = Field("unknown", const=True)
     description: Optional[str]
 
@@ -66,14 +70,14 @@ LexPrimitive = Union[LexBoolean, LexInteger, LexString, LexUnknown]
 # ip1d types ==================================================================
 
 
-class LexBytes(BaseModel):
+class LexBytes(_BaseLex):
     type: str = Field("bytes", const=True)
     description: Optional[str]
     maxLength: Optional[int]
     minLength: Optional[int]
 
 
-class LexCidLink(BaseModel):
+class LexCidLink(_BaseLex):
     type: str = Field("cid-link", const=True)
     description: Optional[str]
 
@@ -84,13 +88,13 @@ LexIpldType = Union[LexBytes, LexCidLink]
 # reference types =============================================================
 
 
-class LexRef(BaseModel):
+class LexRef(_BaseLex):
     type: str = Field("ref", const=True)
     description: Optional[str]
     ref: str
 
 
-class LexRefUnion(BaseModel):
+class LexRefUnion(_BaseLex):
     type: str = Field("union", const=True)
     description: Optional[str]
     refs: List[str]
@@ -102,7 +106,7 @@ LexRefVariant = Union[LexRef, LexRefUnion]
 # blob types ==================================================================
 
 
-class LexBlob(BaseModel):
+class LexBlob(_BaseLex):
     type: str = Field("blob", const=True)
     description: Optional[str]
     accept: Optional[List[str]]
@@ -112,7 +116,7 @@ class LexBlob(BaseModel):
 # complex types ===============================================================
 
 
-class LexArray(BaseModel):
+class LexArray(_BaseLex):
     type: str = Field("array", const=True)
     description: Optional[str]
     items: Union[LexPrimitive, LexIpldType, LexBlob, LexRefVariant]
@@ -124,12 +128,12 @@ class LexPrimitiveArray(LexArray):
     items: LexPrimitive
 
 
-class LexToken(BaseModel):
+class LexToken(_BaseLex):
     type: str = Field("token", const=True)
     description: Optional[str]
 
 
-class LexObject(BaseModel):
+class LexObject(_BaseLex):
     type: str = Field("object", const=True)
     description: Optional[str]
     required: Optional[List[str]]
@@ -142,14 +146,14 @@ class LexObject(BaseModel):
 # xrpc types =================================================================
 
 
-class LexXrpcParameters(BaseModel):
+class LexXrpcParameters(_BaseLex):
     type: str = Field("params", const=True)
     description: Optional[str]
     required: Optional[List[str]]
     properties: dict[str, Union[LexPrimitive, LexPrimitiveArray]]
 
 
-class LexXrpcBody(BaseModel):
+class LexXrpcBody(_BaseLex):
     description: Optional[str]
     encoding: str
     schema_kludge: Optional[Union[LexRefVariant, LexObject]] = Field(
@@ -157,19 +161,20 @@ class LexXrpcBody(BaseModel):
     )
 
 
-class LexXrpcSubscriptionMessage(BaseModel):
+class LexXrpcSubscriptionMessage(_BaseLex):
     description: Optional[str]
     schema_kludge: Optional[Union[LexRefVariant, LexObject]] = Field(
         None, alias="schema"
     )
 
 
-class LexXrpcError(BaseModel):
+
+class LexXrpcError(_BaseLex):
     name: str
     description: Optional[str]
 
 
-class LexXrpcQuery(BaseModel):
+class LexXrpcQuery(_BaseLex):
     type: str = Field("query", const=True)
     description: Optional[str]
     parameters: Optional[LexXrpcParameters]
@@ -177,7 +182,7 @@ class LexXrpcQuery(BaseModel):
     errors: Optional[List[LexXrpcError]]
 
 
-class LexXrpcProcedure(BaseModel):
+class LexXrpcProcedure(_BaseLex):
     type: str = Field("procedure", const=True)
     description: Optional[str]
     parameters: Optional[LexXrpcParameters]
@@ -186,7 +191,7 @@ class LexXrpcProcedure(BaseModel):
     errors: Optional[List[LexXrpcError]]
 
 
-class LexXrpcSubscription(BaseModel):
+class LexXrpcSubscription(_BaseLex):
     type: str = Field("subscription", const=True)
     description: Optional[str]
     parameters: Optional[LexXrpcParameters]
@@ -198,7 +203,7 @@ class LexXrpcSubscription(BaseModel):
 # database types ==============================================================
 
 
-class LexRecord(BaseModel):
+class LexRecord(_BaseLex):
     type: str = Field("record", const=True)
     description: Optional[str]
     key: Optional[str]
@@ -243,7 +248,7 @@ _lex_user_type_to_type = {
 }
 
 
-class LexiconDoc(BaseModel):
+class LexiconDoc(_BaseLex):
     lexicon: int = Field(1, const=True)
     id: str
     revision: Optional[int]
@@ -300,7 +305,7 @@ def has_prop(data: Dict, prop: str) -> bool:
     return prop in data
 
 
-class DiscriminatedObject(BaseModel):
+class DiscriminatedObject(_BaseLex):
     __root__: Dict[str, Any]
 
     @validator("__root__")

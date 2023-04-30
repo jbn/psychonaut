@@ -5,10 +5,16 @@ import click
 import websockets
 import base64
 import time
+from psychonaut.firehose.exponential_backoff import FirehoseExponentialBackoff
+from psychonaut.firehose.io import (
+    LengthDelimitedStreamSegmentWriter,
+    convert_b64_to_length_prefixed_all,
+    noop_segment_writer,
+    stream_to_stdout,
+)
 
 from psychonaut.firehose.serde import (
     read_first_block,
-    stream_to_stdout,
     _json_encode_kludge,
 )
 from .group import cli
@@ -21,17 +27,33 @@ import asyncio
 @click.option("--tee", is_flag=True, help="Write to stdout as well as file")
 @as_async
 async def repos_firehose_stream(output_dir: str, tee: bool):
-    try:
-        await _stream_run(output_dir, tee)
-    except KeyboardInterrupt:
-        raise
-    except Exception as e:
-        # Sleep for 10 seconds and continue
-        print(f"Error: {e}", file=sys.stderr)
-        await asyncio.sleep(10)
+    segment_writer = noop_segment_writer()
+
+    if output_dir:
+        segment_writer = LengthDelimitedStreamSegmentWriter(
+            output_dir,
+            finalize_segment=lambda path, bytes_written: print(
+                f"Wrote {bytes_written} bytes to {path}"
+            ),
+        )
+
+    backoff = FirehoseExponentialBackoff()
+
+    with segment_writer as writer:
+        while True:
+            try:
+                await _stream_run(output_dir, tee, writer)  # TODO: clean up
+                backoff.reset()
+            except KeyboardInterrupt:
+                raise
+            except Exception as e:
+                sleep_time = backoff.next_sleep_time()
+                print(f"Error: {e}", file=sys.stderr)
+                print(f"\tSleeping for {sleep_time} seconds", file=sys.stderr)
+                await asyncio.sleep(sleep_time)
 
 
-async def _stream_run(output_dir: str, tee: bool):
+async def _stream_run(output_dir: str, tee: bool, writer):
     callbacks = []
     if tee:
 
@@ -42,57 +64,61 @@ async def _stream_run(output_dir: str, tee: bool):
         callbacks.append(stdout_callback)
 
     if output_dir:
-        streams_dir = Path(output_dir)
-        streams_dir.mkdir(exist_ok=True, parents=True)
-
-        now = int(time.time())
-        out_path = streams_dir / f"stream.{now}.b64-lines"
-        out_fp = out_path.open("w")
-
-        def file_callback(msg, first_block):
-            out_fp.write(base64.b64encode(msg).decode("utf8") + "\n")
-
-        callbacks.append(file_callback)
+        callbacks.append(writer)
 
     if not tee and not output_dir:
         print_error_and_fail("Must specify either --tee or --output-dir")
 
     uri = "wss://bsky.social/xrpc/com.atproto.sync.subscribeRepos"
     async with websockets.connect(uri) as websocket:
-        with open(out_path, "w") as fp:
-            n = 0
-            start = time.time()
-            while True:
-                # Read the websocket message.
-                msg = await websocket.recv()
+        n = 0
+        start = time.time()
+        while True:
+            # Read the websocket message.
+            msg = await websocket.recv()
 
-                # Read the first block.
-                #
-                # Why the first block? intuition alone. i assume that's a property of
-                # the MST or something, which i have not learned yet. so i guess
-                # assume i am wrong for now.
-                first_block = read_first_block(msg)
+            # msg = await asyncio.wait_for(websocket.recv(), timeout=1)
 
-                for f in callbacks:
-                    f(msg, first_block)
+            # Read the first block.
+            #
+            # Why the first block? intuition alone. i assume that's a property of
+            # the MST or something, which i have not learned yet. so i guess
+            # assume i am wrong for now.
+            first_block = read_first_block(msg)
 
-                if not tee and n % 100 == 0:
-                    per_second = n / (time.time() - start)
-                    print(f"Received {n} messages {per_second:.2f}/s")
+            for f in callbacks:
+                f(msg, first_block)
 
-                n += 1
+            if not tee and n % 100 == 0:
+                per_second = n / (time.time() - start)
+                print(f"Received {n} messages {per_second:.2f}/s")
+
+            n += 1
 
 
 @cli.command
-@click.argument("b64line_file", type=click.Path(exists=False))
-def repos_firehose_replay(b64line_file: str):
-    b64line_file = Path(b64line_file)
-    if not b64line_file.exists():
-        print_error_and_fail(f"File {b64line_file} does not exist")
+@click.argument("length_prefixed_file", type=click.Path(exists=False))
+def repos_firehose_replay(length_prefixed_file: str):
+    length_prefixed_file = Path(length_prefixed_file)
+    if not length_prefixed_file.exists():
+        print_error_and_fail(f"File {length_prefixed_file} does not exist")
 
-    if b64line_file.is_file():
-        stream_to_stdout(b64line_file)
+    if length_prefixed_file.is_file():
+        stream_to_stdout(length_prefixed_file)
 
-    elif b64line_file.is_dir():
-        for p in sorted(b64line_file.glob("*.b64-lines")):
+    elif length_prefixed_file.is_dir():
+        for p in sorted(length_prefixed_file.glob("**/*.length-prefixed")):
             stream_to_stdout(p)
+
+
+@cli.command()
+@click.argument("input_dir", type=click.Path(exists=True))
+@click.argument("output_dir", type=click.Path(exists=False))
+@click.option("--verbose", is_flag=True, help="Print progress")
+@click.option("--skip-empty", is_flag=True, help="Skip files with 0 bytes")
+def b64_dir_to_length_prefixed(
+    input_dir: str, output_dir: str, verbose: bool, skip_empty: bool
+):
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
+    convert_b64_to_length_prefixed_all(input_dir, output_dir, verbose)

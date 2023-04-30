@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 import textwrap
 from typing import List
+from functools import lru_cache, wraps
 
 
 def to_lex_uri(string: str, base_uri: str = None) -> str:
@@ -14,6 +15,23 @@ def to_lex_uri(string: str, base_uri: str = None) -> str:
         return f"{base_uri}{string}"
 
     return f"lex:{string}"
+
+
+def memoized_property(func):
+    """
+    A decorator for creating memoized properties on Pydantic models.
+    """
+    @property
+    @wraps(func)
+    def wrapped(self):
+        # Store the cached values in the model's __dict__
+        if func.__name__ not in self.__dict__:
+            self.__dict__[func.__name__] = func(self)
+        return self.__dict__[func.__name__]
+
+    return wrapped
+    
+
 
 
 # ==============================================================================
@@ -46,7 +64,6 @@ def build_python_module_file_structure(output_dir: Path, id_str: str) -> Path:
 
     return base_path / file_name
 
-
 def import_types_str(package_path: str, type_names: List[str], max_line=79) -> str:
     """
     Builds a string that imports the given type names from the given package path.
@@ -62,3 +79,7 @@ def import_types_str(package_path: str, type_names: List[str], max_line=79) -> s
     )
     import_str += "\n)"
     return import_str
+
+
+def camel_to_class_name(s: str) -> str:
+    return s[0].upper() + s[1:]

@@ -27,12 +27,19 @@ from psychonaut.lexicon.codegen import generate_all
 )
 @click.option(
     "--verbose",
-    default=True,
+    default=False,
     type=bool,
     help="Whether to print verbose output.",
     is_flag=True,
 )
-def main(input_dir: str, output_dir: str, remove_existing: bool, verbose: bool):
+@click.option(
+    "--import-all-test",
+    default=False,
+    type=bool,
+    help="Test the generated code by importing all the generated files.",
+    is_flag=True,
+)
+def main(input_dir: str, output_dir: str, remove_existing: bool, verbose: bool, import_all_test: bool):
     if remove_existing and Path(output_dir).exists():
         if verbose:
             print(f"Removing existing files in {output_dir}")
@@ -43,6 +50,7 @@ def main(input_dir: str, output_dir: str, remove_existing: bool, verbose: bool):
         input_dir=Path(input_dir),
         output_dir=Path(output_dir),
         verbose=verbose,
+        import_all_test=import_all_test,
     )
 
 

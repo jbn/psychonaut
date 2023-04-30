@@ -1,6 +1,8 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Protocol, Union
+from psychonaut.lexicon.constants import MODULE_PREFIX
 
 from psychonaut.lexicon.ctx import GenCtx
+from psychonaut.lexicon.util import camel_to_class_name, camel_to_snake
 from .types import (
     LexArray,
     LexInteger,
@@ -11,9 +13,22 @@ from .types import (
 )
 
 
+class FieldDef(Protocol):
+    name: str
+    type: str
+    required: bool
+    opts: Dict[str, Any]
+
+
 def generate_pydantic_fields(
     ctx: GenCtx, params: Union[LexXrpcParameters, LexObject]
 ) -> List[str]:
+    # Needs:
+    # .required
+    # .properties
+    #
+    # compiles: LexObject
+    # compiles: LexXrpcParameters
     if not params or not params.properties:
         return []
 
@@ -92,7 +107,15 @@ def _generate_bool_field(name: str, required: bool, props: LexBoolean) -> str:
     if props.default is not None:
         opts["default"] = props.default
 
-    assert props.const is None, "const not implemented"
+    if props.description is not None:
+        opts["description"] = props.description
+
+    if name == "validate":
+        # Pydantic uses 'validate' don't shadow it'
+        name = "validate_flag"
+        opts["alias"] = "validate"
+
+    # assert props.const is None, "const not implemented" TODO
 
     return _build_expanded("bool", required, opts, name)
 
@@ -156,6 +179,9 @@ def _add_imports_and_get_validator(ctx: GenCtx, fmt: str) -> Symbol:
     elif fmt == "datetime":
         ctx.imports["psychonaut.lexicon.formats"].add("validate_datetime")
         return Symbol("validate_datetime")
+    elif fmt == "uri":
+        ctx.imports["psychonaut.lexicon.formats"].add("validate_uri")
+        return Symbol("validate_uri")
     else:
         assert False, f"Unknown format: {fmt}"
 
@@ -164,6 +190,7 @@ def _generate_array_field(
     ctx: GenCtx, name: str, required: bool, props: LexArray
 ) -> str:
     ctx.imports["typing"].add("List")
+    ctx.imports["typing"].add("Optional")  # TODO: fix
 
     opts = {}
 
@@ -177,13 +204,11 @@ def _generate_array_field(
     if props.max_length is not None:
         opts["max_items"] = props.max_length
 
-    assert props.items.const is None, "const not implemented"
-    assert props.items.enum is None, "enum not implemented"
-    assert props.items.known_values is None, "known_values not implemented"
-    assert props.items.min_graphemes is None, "min_graphemes not implemented"
-    assert props.items.max_graphemes is None, "max_graphemes not implemented"
+    for unimp in ["const", "enum", "known_values", "min_graphemes", "max_graphemes"]:
+        if hasattr(props.items, unimp) and getattr(props.items, unimp) is not None:
+            assert False, f"{unimp} not implemented"
 
-    if props.items.format is not None:
+    if hasattr(props.items, "format") and props.items.format is not None:
         opts["pre"] = True
         underlying_validator = _add_imports_and_get_validator(ctx, props.items.format)
         ctx.imports["psychonaut.lexicon.formats"].add("validate_array")
@@ -206,10 +231,16 @@ def _generate_field(
 ) -> str:
     type_ = props.type
 
-    if type_ == "ref" or (type_ == "array" and props.items.type == "ref"):
-        print(f"Ref to any kludge: {name}")
-        type_ = 'Any'
+    if type_ == "array" and props.items.type == "ref":
+        # print(f"Ref to any arr kludge: {ctx.input_path} {name}")
+        # print(">>>>>>>>>>>>>>>>>>>>>>", ctx, name, props)
+        type_ = "Any"
 
+    if not required:
+        ctx.imports["typing"].add("Optional")
+
+    if type_ == "ref":
+        return _generate_ref_field(ctx, name, required, props)
     if type_ == "integer":
         return _generate_integer_field(name, required, props)
     elif type_ == "string":
@@ -220,4 +251,40 @@ def _generate_field(
         return _generate_array_field(ctx, name, required, props)
     else:
         print(f"Unknown type: {type_}")
+        ctx.imports["typing"].add("Any")
         return _generate_generic_field(name, required, props)
+
+
+def _generate_ref_field(
+    ctx: GenCtx, name: str, required: bool, props: Dict[str, Any]
+) -> str:
+    ref_class = ""
+    if "#" in props.ref:
+        if props.ref.startswith("#"):
+            ref_class = camel_to_class_name(props.ref[1:])
+        elif len(parts := props.ref.split("#")) > 1:
+            module = camel_to_snake(parts[0])
+            ref_class = camel_to_class_name(parts[1])
+            if module != ctx.common_xrpc_id:
+                print("YYYYYY", props.ref, module, parts, ctx.common_xrpc_id)
+                ctx.imports[MODULE_PREFIX + module].add(camel_to_class_name(parts[-1]))
+    else:
+        # Assume it's importing the main class at that path
+        parts = props.ref.split(".")
+        module = MODULE_PREFIX + camel_to_snake(props.ref)
+        ref_class = camel_to_class_name(parts[-1])
+
+        ctx.imports[module].add(camel_to_class_name(parts[-1]))
+
+        print("YYY", props.ref, module, ref_class)
+
+        ref_class = camel_to_class_name(props.ref.split(".")[-1])
+
+    ref_class = camel_to_class_name(ref_class)
+    if required:
+        return f"{name}: {ref_class}"
+    else:
+        return f"{name}: Optional[{ref_class}] = None"
+
+
+# def _generate_ref_field(ctx: GenCtx, name: str, required: bool, props: Dict[str, Any]) -> str:
