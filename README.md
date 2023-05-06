@@ -6,16 +6,7 @@
 
 # PROGRESS REPORT
 
-- [x] Parse the Lexicons with PyDantic
-- [ ] Generate code from the Lexicons
-    - [x] Generate files
-    - [x] Generate Fields from full Lexicon spec
-        - [x] Generate code for queries
-        - [x] Generate code for records
-        - [x] Generate code for the procedures
-    - [x] Generate f: (Session, Req) -> Resp helper functions
-    - [ ] Finish validations for references
-- [x] Exponential backoff
+- [ ] Finish pydantic validation for reference types
 
 # What is this?
 
@@ -25,13 +16,51 @@ I used to do a pretty absurd amount of experiments with twitter's api. But musk
 has decided to turn that platform into a pay-for-play version of LinkedIn
 and banished all the tinkerers. So, now I'm here.
 
+It has a bit of a weird structure. You basically do things like,
+
+```python
+async with get_simple_client_session() as sess:
+    posts: GetPostsResp = await GetPostsReq(uris=[...]).do_xrpc(sess)
+    ...
+```
+
+which feels backwards from the expected,
+
+```python
+async with get_simple_client_session() as sess:
+    posts: GetPostsResp = await sess.do_xrpc(GetPostsReq(uris=[...]))
+```
+
+or even,
+
+```python
+async with get_simple_client_session() as sess:
+    posts: GetPostsResp = await sess.get_posts(uris=[...])
+```
+
+It's kinda an artifact of the way I did code generation but I kinda like it
+and fuck it S-expressions worked so there is a (completely nonsensical)
+precedence. 
+
+**And, just to clarify, every request and response gets validated against the lexicon schema**, 
+which is nice (although reference types are still a WIP). Moreover, the 
+generated code is auto-complete/copilot friendly. And, in theory, you could override
+`do_xrpc` to do clever things like caching, instead of hacking each particular api call.
+
+But mostly I'm lazy so this is how it is.
+
 # Should I use this?
 
-Almost certainly not. Right now it's a bucket of slop. I offer no 
+~~Almost certainly not. Right now it's a bucket of slop. I offer no 
 guarantees about the stability of the API, the correctness of the
-implementation, or the quality of the documentation. 
+implementation, or the quality of the documentation.~~
 
-If you want to use it, go ahead,
+If you want to use it, go ahead.
+
+Every single api call exists with Pydantic models for requests and responses
+(but with a few outstanding validations missing).
+
+It's still unstable but I've been using it pretty regularly.
 
 ```bash
 # In your venv or mamba env or whatever
@@ -90,19 +119,21 @@ psychonaut repos-firehose-replay stream_dir/your_stream.b64-lines
 
 # How is this made?
 
-This is a collaboration between the [atproto repo](https://github.com/bluesky-social/atproto),
-me, and my friend ChatGPT (using GPT-4). I've been toying around with this 
+Initially, this was a collaboration between the [atproto repo](https://github.com/bluesky-social/atproto),
+me, and my friend ChatGPT (using GPT-4). I had been toying around with this 
 automatic `langa`<->`langb` transpiler in [langchain](https://github.com/hwchase17/langchain).
 My original goal was to jointly build that while making my python client from the `atproto`
-repo. However, the fine folks at OpenAI have decided to *still* not grant me access to 
-GPT-4 in the API, and GPT-3 isn't quite good enough to do the job. So instead, 
-this was me testing the fences "manually" (with ChatGPT.)
+repo. However, the fine folks at OpenAI didn't give me 
+GPT-4 API access, and GPT-3 isn't quite good enough to do the job. So instead, 
+this was me testing the fences "manually" (with ChatGPT). And now it's *just*
+me.
 
-This also means this project is a bit...like theft? IDK. 
+This also means this project was a bit...like theft? IDK. 
 
 Question of the generative hour: where is the boundary?
 
 # See Also (for pythonistas)
 
-- [lexrpc](https://github.com/snarfed/lexrpc) (almost certainly better designed then mine)
-- [atprotools](https://github.com/jbn/psychonaut/) *unstable*
+- [arroba](https://github.com/snarfed/arroba) 
+- [lexrpc](https://github.com/snarfed/lexrpc) 
+- [atprotools](https://github.com/ianklatzco/atprototools) 
