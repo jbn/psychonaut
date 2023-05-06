@@ -1,8 +1,7 @@
 from pathlib import Path
 
 from multiformats import CID
-from psychonaut.firehose.car import read_car
-from psychonaut.firehose.serde import read_msg_pair
+from psychonaut.firehose.serde import read_event_pair
 from psychonaut.util import load_test_fixture
 from base64 import b64decode
 
@@ -33,8 +32,8 @@ from base64 import b64decode
 def test_read_msg_pair(load_test_fixture):
     post = b64decode(load_test_fixture("donkeyballs.b64"))
 
-    kind, obj = read_msg_pair(post)
-    assert kind == {"op": 1, "t": "#commit"}
+    header, event = read_event_pair(post)
+    assert header == {"op": 1, "t": "#commit"}
 
     keys = {
         "ops",
@@ -48,49 +47,28 @@ def test_read_msg_pair(load_test_fixture):
         "rebase",
         "tooBig",
     }
-    assert set(obj) == keys
+    assert set(event) == keys
 
-    assert len(obj["ops"]) == 1
-    op = obj["ops"][0]
+    assert len(event["ops"]) == 1
+    op = event["ops"][0]
     assert op["action"] == "create"
     assert op["path"] == "app.bsky.feed.post/3ju35q7husm2p"
     cid = op["cid"]
     assert isinstance(cid, CID)
     assert str(cid) == "zdpuAx7GYAybGShxy9wvkK5eJt6a5G47tz5z5yeFcDqChfYE3"
 
-    assert obj["seq"] == 4715462
-    assert isinstance(obj["prev"], CID)
-    assert str(obj["prev"]) == "zdpuAmv8cg3iFrz9rn14kYpCZDphscAnYxzxm8EKodWpXbRec"
-    assert obj["repo"] == "did:plc:o32okshy54r5h2vlrjpz3aln"
-    assert obj["time"] == "2023-04-23T23:05:15.389Z"
+    assert event["seq"] == 4715462
+    assert isinstance(event["prev"], CID)
+    assert str(event["prev"]) == "zdpuAmv8cg3iFrz9rn14kYpCZDphscAnYxzxm8EKodWpXbRec"
+    assert event["repo"] == "did:plc:o32okshy54r5h2vlrjpz3aln"
+    assert event["time"] == "2023-04-23T23:05:15.389Z"
 
-    assert len(obj["blobs"]) == 0
-    assert len(obj["blocks"]) == 5082
-    assert isinstance(obj["commit"], CID)
-    assert str(obj["commit"]) == "zdpuArKcqh4Bfc5ufSWKTSS1jFRYJ47gpuxCEVXeWdMEjDpAM"
+    assert len(event["blobs"]) == 0
+    assert len(event["blocks"]) == 5082
+    assert isinstance(event["commit"], CID)
+    assert str(event["commit"]) == "zdpuArKcqh4Bfc5ufSWKTSS1jFRYJ47gpuxCEVXeWdMEjDpAM"
 
-    assert not obj["rebase"]
-    assert not obj["tooBig"]
-
-
-def test_read_car(load_test_fixture):
-    post = b64decode(load_test_fixture("donkeyballs.b64"))
-    _, obj = read_msg_pair(post)
-    blocks_raw = obj["blocks"]
-    roots, blocks = read_car(blocks_raw)
-
-
-    # The commit CID
-    assert [str(cid) for cid in roots] == ["zdpuArKcqh4Bfc5ufSWKTSS1jFRYJ47gpuxCEVXeWdMEjDpAM"]
-
-    assert len(blocks) == 10
-    assert blocks[0].cid == CID.decode(
-        "zdpuAx7GYAybGShxy9wvkK5eJt6a5G47tz5z5yeFcDqChfYE3"
-    )
-    assert blocks[0].decoded == {
-        "$type": "app.bsky.feed.post",
-        "createdAt": "2023-04-23T23:05:15.184Z",
-        "text": "donkeyballs",
-    }
+    assert not event["rebase"]
+    assert not event["tooBig"]
 
     # assert blocks[2] == { }

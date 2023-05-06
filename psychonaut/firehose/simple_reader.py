@@ -1,15 +1,46 @@
-from typing import Any, Iterable
-from psychonaut.firehose.car import read_car
+from typing import Any, Callable, Iterable
 
-from psychonaut.firehose.serde import read_msg_pair
+from pydantic import BaseModel
+from psychonaut.core.car import read_car
+from psychonaut.firehose.serde import read_event_pair, read_enriched_event
 
 
-def iter_events(messages: Iterable[bytes], err_callback) -> Iterable[Any]:
+ERROR_CALLBACK_TYPE = Callable[[int, bytes], None]
+
+
+def noop_error_callback(i: int, e: Exception, msg: bytes) -> None:
+    pass
+
+
+class ErrorCollector:
+    def __init__(self):
+        self.errors = []
+
+    def __call__(self, i: int, e: Exception, msg: bytes) -> None:
+        self.errors.append((i, e, msg))
+
+    def __len__(self):
+        return len(self.errors)
+
+
+def iter_events(
+    messages: Iterable[bytes], err_callback: ERROR_CALLBACK_TYPE = noop_error_callback
+) -> Iterable[Any]:
     for i, msg in enumerate(messages):
-        kind, obj = read_msg_pair(msg)
+        header, event = read_event_pair(msg)
         try:
-            roots, blocks = read_car(obj['blocks'])
-            yield kind, obj, roots, blocks
-        except KeyError:
-            err_callback(i, msg)
+            roots, blocks = read_car(event["blocks"])
+            yield header, event, roots, blocks
+        except KeyError as e:
+            err_callback(i, e, msg)
+
+
+def iter_enriched_events(
+    messages: Iterable[bytes], err_callback: ERROR_CALLBACK_TYPE = noop_error_callback
+) -> Iterable[BaseModel]:
+    for i, msg in enumerate(messages):
+        try:
+            yield read_enriched_event(msg)
+        except Exception as e:
+            err_callback(i, e, msg)
 

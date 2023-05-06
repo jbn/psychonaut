@@ -1,14 +1,12 @@
 import base64
 from contextlib import contextmanager
 import json
-from psychonaut.firehose.car import read_blocks, read_car
+from psychonaut.core.car import read_car
 
 from psychonaut.firehose.serde import (
     _json_encode_kludge,
-    read_first_block,
-    read_msg_pair,
+    read_event_pair,
 )
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Tuple
@@ -27,7 +25,7 @@ def write_length_prefixed_msg(msg: bytes, fp) -> int:
     return 4 + length
 
 
-FINALIZE_SEGMENT = Callable[(Path, int), None]
+FINALIZE_SEGMENT = Callable[[Path, int], None]
 
 
 def noop_finalize_segment(path: Path, bytes_written: int):
@@ -96,7 +94,7 @@ def b64line_iter(stream_path: Path):
 
 def b64line_cbor2_iter(stream_path: Path):
     for msg in b64line_iter(stream_path):
-        yield read_msg_pair(msg)
+        yield read_event_pair(msg)
 
 
 def length_prefixed_iter(stream_path: Path):
@@ -144,18 +142,36 @@ def convert_b64_to_length_prefixed_all(
 
 def stream_to_stdout(length_prefixed_file: Path):
     for msg in length_prefixed_iter(length_prefixed_file):
-        kind, obj = read_msg_pair(msg)
-        roots, blocks = read_car(obj["blocks"])
+        header, event = read_event_pair(msg)
+        roots, blocks = read_car(event["blocks"])
         first_block = blocks[0]
 
         if first_block:
             # TODO: finish pydantic models for records so no kludge needed
             try:
-                obj["first_block_cid"] = first_block.cid
-                obj["first_block_msg"] = first_block.decoded
-                del obj["blocks"]
-                line = json.dumps(_json_encode_kludge(obj))
+                event["first_block_cid"] = first_block.cid
+                event["first_block_msg"] = first_block.decoded
+                del event["blocks"]
+                line = json.dumps(_json_encode_kludge(event))
             except TypeError:
                 print(first_block)
                 raise
             print(line)
+
+
+def iter_length_prefixed_paths(data_dir: Path, verbose=False):
+    assert data_dir.exists(), f"{data_dir} does not exist"
+    
+    for file_path in sorted(data_dir.glob("**/*.length-prefixed")):
+        mb_size = file_path.stat().st_size / 1_000_000
+        path_rel_data_dir = file_path.relative_to(data_dir)
+        if verbose:
+            print(f"{path_rel_data_dir}: {mb_size} mb")
+
+        yield file_path
+
+
+def read_all_length_prefixed_bytes(data_dir: Path, verbose=False):
+    for file_path in iter_length_prefixed_paths(data_dir, verbose):
+        for msg in length_prefixed_iter(file_path):
+            yield msg

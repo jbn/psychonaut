@@ -9,6 +9,7 @@ from psychonaut.firehose.exponential_backoff import FirehoseExponentialBackoff
 from psychonaut.firehose.io import (
     LengthDelimitedStreamSegmentWriter,
     convert_b64_to_length_prefixed_all,
+    iter_length_prefixed_paths,
     noop_segment_writer,
     stream_to_stdout,
 )
@@ -107,7 +108,7 @@ def repos_firehose_replay(length_prefixed_file: str):
         stream_to_stdout(length_prefixed_file)
 
     elif length_prefixed_file.is_dir():
-        for p in sorted(length_prefixed_file.glob("**/*.length-prefixed")):
+        for p in iter_length_prefixed_paths(length_prefixed_file):
             stream_to_stdout(p)
 
 

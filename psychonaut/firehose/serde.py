@@ -2,43 +2,58 @@ from typing import Any, Dict
 import cbor2
 import base64
 import io
-from pathlib import Path
-
 from multiformats import CID
 from pydantic import BaseModel
 
-from psychonaut.firehose.car import read_car
+from psychonaut.core.car import read_car
 import dag_cbor
 
+from psychonaut.firehose.events import CommitEvt, HandleEvt
 
 
-def read_msg_pair(msg: bytes):
+def read_event_pair(msg: bytes):
     with io.BytesIO(msg) as fp:
-        kind = cbor2.load(fp)
-        obj = dag_cbor.decode(fp.read())
-    return kind, obj
+        header = cbor2.load(fp)
+        event = dag_cbor.decode(fp.read())
+    return header, event
+
+
+class UnknownKludge(BaseModel):
+    header: Dict[str, Any]
+    event: Dict[str, Any]
+
+
+def read_enriched_event(msg: bytes):
+    header, event = read_event_pair(msg)
+
+    match header["t"]:
+        case "#commit":
+            return CommitEvt.parse_obj(event)
+        case "#handle":
+            return HandleEvt.parse_obj(event)
+        case _:
+            return UnknownKludge(header=header, event=event)
 
 
 def read_first_block(msg: bytes):
-    kind, obj = read_msg_pair(msg)
+    header, event = read_event_pair(msg)
 
-    if "t" not in kind or kind["t"] != "#commit":
+    if "t" not in header or header["t"] != "#commit":
         return None
 
     # TODO: "t==#handle"
 
-    blocks = read_car(obj["blocks"])
+    blocks = read_car(event["blocks"])
 
-    obj["blocks"] = blocks
+    event["blocks"] = blocks
 
-    return obj
+    return event
 
     # return {
     #     'ks': list(obj.keys()),
     #     'repo': obj['repo'],
     #     'block': blocks
     # }
-
 
 
 def _json_encode_kludge(d: Dict[Any, Any]) -> Any:
@@ -59,8 +74,3 @@ def _json_encode_kludge(d: Dict[Any, Any]) -> Any:
                     _json_encode_kludge(x)
 
     return d
-
-
-
-
-
