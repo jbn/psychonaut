@@ -1,99 +1,59 @@
-"""
-Example code to download all posts that an actor has Liked from BlueSky
-"""
-
+import asyncio
 import json
-from typing import List
+import sys
+from more_itertools import chunked
 
 from psychonaut.client import get_simple_client_session
 from psychonaut.client.cursors import collect_cursored
-from psychonaut.cli.util import as_async, clean_handle
+from psychonaut.cli.util import clean_handle
 
-from psychonaut.api.lexicons.com.atproto.identity.resolve_handle import (
-    ResolveHandleReq, ResolveHandleResp,
-)
+from psychonaut.api.lexicons.com.atproto.identity.resolve_handle import ResolveHandleReq
 from psychonaut.api.lexicons.com.atproto.repo.list_records import (
-    ListRecordsReq, ListRecordsResp,
+    ListRecordsReq,
+    ListRecordsResp,
 )
-from psychonaut.api.lexicons.app.bsky.feed.get_posts import (
-    GetPostsReq, GetPostsResp,
-)
+from psychonaut.api.lexicons.app.bsky.feed.get_posts import GetPostsReq
 
-@as_async
-async def resolve_handle(actor: str):
 
+async def main(handle: str):
     async with get_simple_client_session() as sess:
-        req = ResolveHandleReq(handle=actor)
-        resp = await req.do_xrpc(sess)
-        assert isinstance(resp, ResolveHandleResp)
+        # Resolve the handle
+        response = await ResolveHandleReq(handle=handle).do_xrpc(sess)
+        print(response)
 
-        return resp
+        # Taking the DID from the resolved handle and get all likes by that person
+        likes = [
+            record
+            async for record in collect_cursored(
+                sess,
+                ListRecordsReq(
+                    repo=response.did,
+                    collection="app.bsky.feed.like",
+                    limit=100,
+                ),
+                ListRecordsResp,
+                "records",
+            )
+        ]
 
+        uris = []
+        for record in likes:
+            print(json.dumps(record, indent=2))
+            uris.append(
+            # TODO: update after fixing ref bug that makes these Any types
+                record["value"]["subject"]["uri"]
+            )  
 
-@as_async
-async def list_records(
-    user_did: str,
-    collection: str,
-):
-    records = []
-    async with get_simple_client_session() as sess:
-        gen = collect_cursored(
-            sess,
-            ListRecordsReq(
-                repo=user_did,
-                collection=collection,
-                limit=100,
-            ),
-            ListRecordsResp,
-            "records"
-        )
+        # Get all liked posts
+        posts = [
+            post
+            for uri_chunk in chunked(uris, 25)
+            for post in await GetPostsReq(uris=uri_chunk).do_xrpc(sess)
+        ]
 
-        async for record in gen:
-            records.append(record)
-        
-        return records
-
-
-@as_async
-async def get_posts(
-    uri_list: List[str],
-    chunk_size: int = 25,
-):
-    posts = []
-    for i in range(0, len(uri_list), chunk_size):
-        uri_chunk = uri_list[i:i+chunk_size]
-  
-        async with get_simple_client_session() as sess:
-            req = GetPostsReq(uris=uri_chunk)
-            resp = await req.do_xrpc(sess)
-            assert isinstance(resp, GetPostsResp)
-
-            for post in resp.posts:
-                posts.append(post)
-
-    return {
-        "posts": posts
-    }
+        print(json.dumps({"posts": posts}, indent=2))
 
 
-HANDLE = "somebody.bsky.social"
-
-# Resolve the handle
-response = resolve_handle(HANDLE)
-print(response)
-
-# Taking the DID from the resolved handle and get all likes by that person
-response = list_records(
-    user_did=response.did,
-    collection="app.bsky.feed.like",
-)
-uris = []
-for record in response:
-    print(json.dumps(record, indent=2))
-    uris.append(record["value"]["subject"]["uri"])
-
-# Get all like posts
-posts = get_posts(
-    uri_list = uris,
-)
-print(json.dumps(posts, indent=2))
+if __name__ == "__main__":
+    handle = sys.argv[1]
+    asyncio.run(main(clean_handle(handle)))
