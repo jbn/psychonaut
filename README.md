@@ -10,7 +10,7 @@
 
 # What is this?
 
-An async python client for Bluesky.
+An async python sdk for Bluesky.
 
 I used to do a pretty absurd amount of experiments with twitter's api. But musk
 has decided to turn that platform into a pay-for-play version of LinkedIn
