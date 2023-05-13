@@ -1,7 +1,7 @@
 import base64
 from contextlib import contextmanager
 import json
-from psychonaut.core.car import read_car
+from carbox.car import read_car
 
 from psychonaut.firehose.serde import (
     _json_encode_kludge,

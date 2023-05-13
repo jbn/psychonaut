@@ -1,7 +1,7 @@
 from typing import Any, Callable, Iterable
 
 from pydantic import BaseModel
-from psychonaut.core.car import read_car
+from carbox.car import read_car
 from psychonaut.firehose.serde import read_event_pair, read_enriched_event
 
 

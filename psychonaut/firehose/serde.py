@@ -5,7 +5,7 @@ import io
 from multiformats import CID
 from pydantic import BaseModel
 
-from psychonaut.core.car import read_car
+from carbox.car import read_car
 import dag_cbor
 
 from psychonaut.firehose.events import CommitEvt, HandleEvt

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from multiformats import CID
-from psychonaut.firehose.serde import read_event_pair
+from carbox.message import read_event_pair
 from psychonaut.util import load_test_fixture
 from base64 import b64decode
 

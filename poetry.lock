@@ -281,6 +281,23 @@ jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
+name = "carbox"
+version = "0.0.1"
+description = ""
+category = "main"
+optional = false
+python-versions = ">=3.9,<4.0"
+files = [
+    {file = "carbox-0.0.1-py3-none-any.whl", hash = "sha256:801064618b4ae30a2eb039b14afed8b318ec2cf2ea33c44a7ca25d3fec5d3f90"},
+    {file = "carbox-0.0.1.tar.gz", hash = "sha256:4d9cc1b29b493d1f9ed8805cfe2f019dc0b9a62e445073069f893d3552bdd06c"},
+]
+
+[package.dependencies]
+cbor2 = ">=5.4.6,<6.0.0"
+dag-cbor = ">=0.3.2,<0.4.0"
+multiformats = ">=0.2.1,<0.3.0"
+
+[[package]]
 name = "cbor2"
 version = "5.4.6"
 description = "CBOR (de)serializer with extensive tag support"
@@ -2357,4 +2374,4 @@ optimized = []
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "72ffd130cb16440a1080e33116e9f4cb307290cef69de76e6e73e84c71df7b73"
+content-hash = "3af52ed07ffbc33eab698c25581f7aff3fd4c6deea11adc151d464dac2a4721d"
