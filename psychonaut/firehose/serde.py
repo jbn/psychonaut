@@ -4,8 +4,7 @@ import base64
 import io
 from multiformats import CID
 from pydantic import BaseModel
-
-from carbox.car import read_car
+from carbox.car import read_car, Block
 import dag_cbor
 
 from psychonaut.firehose.events import CommitEvt, HandleEvt
@@ -35,7 +34,7 @@ def read_enriched_event(msg: bytes):
             return UnknownKludge(header=header, event=event)
 
 
-def read_first_block(msg: bytes):
+def read_jsonified_event(msg: bytes):
     header, event = read_event_pair(msg)
 
     if "t" not in header or header["t"] != "#commit":
@@ -43,8 +42,9 @@ def read_first_block(msg: bytes):
 
     # TODO: "t==#handle"
 
-    blocks = read_car(event["blocks"])
+    cids, blocks = read_car(event["blocks"])
 
+    event['block_cids'] = cids
     event["blocks"] = blocks
 
     return event
@@ -72,5 +72,7 @@ def _json_encode_kludge(d: Dict[Any, Any]) -> Any:
                     v[i] = str(x)
                 elif isinstance(x, dict):
                     _json_encode_kludge(x)
+                elif isinstance(x, Block):
+                    v[i] = [str(x.cid), _json_encode_kludge(x.decoded)]
 
     return d

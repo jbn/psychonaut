@@ -3,7 +3,6 @@ from pathlib import Path
 import sys
 import click
 import websockets
-import base64
 import time
 from psychonaut.firehose.exponential_backoff import FirehoseExponentialBackoff
 from psychonaut.firehose.io import (
@@ -15,7 +14,7 @@ from psychonaut.firehose.io import (
 )
 
 from psychonaut.firehose.serde import (
-    read_first_block,
+    read_jsonified_event,
     _json_encode_kludge,
 )
 from .group import cli
@@ -26,8 +25,9 @@ import asyncio
 @cli.command()
 @click.argument("output_dir", type=click.Path(exists=False))
 @click.option("--tee", is_flag=True, help="Write to stdout as well as file")
+@click.option("--tee-first-block-only", is_flag=True, help="Only print the first block")
 @as_async
-async def repos_firehose_stream(output_dir: str, tee: bool):
+async def repos_firehose_stream(output_dir: str, tee: bool, tee_first_block_only: bool):
     segment_writer = noop_segment_writer()
 
     if output_dir:
@@ -43,24 +43,36 @@ async def repos_firehose_stream(output_dir: str, tee: bool):
     with segment_writer as writer:
         while True:
             try:
-                await _stream_run(output_dir, tee, writer)  # TODO: clean up
+                await _stream_run(
+                    output_dir, tee, writer, tee_first_block_only
+                )  # TODO: clean up
                 backoff.reset()
             except KeyboardInterrupt:
                 raise
             except Exception as e:
+                raise e
                 sleep_time = backoff.next_sleep_time()
                 print(f"Error: {e}", file=sys.stderr)
                 print(f"\tSleeping for {sleep_time} seconds", file=sys.stderr)
                 await asyncio.sleep(sleep_time)
 
 
-async def _stream_run(output_dir: str, tee: bool, writer):
+def _has_one_block(jsonified_event):
+    return "blocks" in jsonified_event and len(jsonified_event["blocks"]) > 0
+
+
+async def _stream_run(
+    output_dir: str, tee: bool, writer, tee_first_block_only: bool = False
+):
     callbacks = []
     if tee:
 
-        def stdout_callback(msg, first_block):
-            if first_block:
-                print(json.dumps(_json_encode_kludge(first_block)))
+        def stdout_callback(msg, jsonified_event):
+            if jsonified_event:
+                if tee_first_block_only and _has_one_block(jsonified_event):
+                    jsonified_event["blocks"] = [jsonified_event["blocks"][0]]
+                    jsonified_event["block_cids"] = [jsonified_event["block_cids"][0]]
+                print(json.dumps(_json_encode_kludge(jsonified_event)))
 
         callbacks.append(stdout_callback)
 
@@ -82,13 +94,12 @@ async def _stream_run(output_dir: str, tee: bool, writer):
 
             # Read the first block.
             #
-            # Why the first block? intuition alone. i assume that's a property of
-            # the MST or something, which i have not learned yet. so i guess
-            # assume i am wrong for now.
-            first_block = read_first_block(msg)
+
+            # TODO: clean this up its kinda just a mess & bandaid
+            jsonified_event = read_jsonified_event(msg)
 
             for f in callbacks:
-                f(msg, first_block)
+                f(msg, jsonified_event)
 
             if not tee and n % 100 == 0:
                 per_second = n / (time.time() - start)

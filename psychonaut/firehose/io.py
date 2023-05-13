@@ -76,7 +76,7 @@ class LengthDelimitedStreamSegmentWriter:
         if self._bytes_written >= self._segment_size:
             self._init_next_segment()
 
-    def __call__(self, msg: bytes, first_block: Dict[str, Any]):
+    def __call__(self, msg: bytes, *args, **kwargs):
         self.write(msg)
 
     def __enter__(self):
