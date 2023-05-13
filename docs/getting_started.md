@@ -66,7 +66,7 @@ psychonaut get-following @you.bsky.social
 
 # Get a user's DID
 psychonaut resolve-handle @generativist.xyz
-````
+```
 
 
 If you are interested in consuming the firehose, it 

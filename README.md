@@ -1,5 +1,5 @@
 ![Tests](https://github.com/jbn/psychonaut/actions/workflows/test.yaml/badge.svg)
-
+[![Docs](https://readthedocs.org/projects/psychonaut/badge/?version=latest)](https://psychonaut.readthedocs.io/en/latest/?badge=latest)
 
 ![Psychonaut helmet](./psychonaut_logo.png "A helmet for the psychonaut")
 
