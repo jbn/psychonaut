@@ -66,7 +66,7 @@ class CommitEvt(BaseModel):
     commit: CID = Field(..., pre=True, validator=validate_cid)
     prev: Optional[CID] = Field(default=None, pre=True, validator=validate_cid)
     blocks: bytes
-    blobs: List[str] = Field(default_factory=list, pre=True, validator=validate_cid)
+    blobs: List[CID] = Field(default_factory=list, pre=True, validator=validate_cid)
     rebase: bool
     too_big: bool = Field(..., alias="tooBig")
 
