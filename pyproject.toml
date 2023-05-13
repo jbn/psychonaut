@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "psychonaut"
-version = "0.0.14"
+version = "0.0.15"
 description = "Python async client and TUI for bsky"
 authors = ["generativist <jbn@abreka.com>"]
 readme = "README.md"
