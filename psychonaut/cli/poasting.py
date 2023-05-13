@@ -1,10 +1,10 @@
-
 from typing import Tuple
 import click
 from psychonaut.cli.group import cli
 from psychonaut.cli.util import as_async
 from psychonaut.client import get_simple_client_session
 from psychonaut.api.lexicons.app.bsky.feed.post import Post
+
 # from psychonaut.api.lexicons.com.atproto.repo.upload_blob import (
 #     UploadBlobReq,
 #     upload_blob as upload_blob_f,
@@ -16,7 +16,13 @@ from pathlib import Path
 
 @cli.command()
 @click.argument("text")
-@click.option("--image", "-i", multiple=True)
+@click.option(
+    "--image",
+    "-i",
+    multiple=True,
+    help="image(s) to poast",
+    type=click.Path(exists=True),
+)
 @as_async
 async def poast(text: str, image: Tuple[str]):
     if image:
@@ -43,22 +49,16 @@ async def poast(text: str, image: Tuple[str]):
                 with open(img, "rb") as f:
                     img_bytes = f.read()
 
-                resp = (await sess._post_blob_kludge(img_bytes, content_type))['blob']
+                resp = (await sess._post_blob_kludge(img_bytes, content_type))["blob"]
                 images.append(resp)
 
             embed = {
                 "$type": "app.bsky.embed.images",
                 "images": [
-                    {
-                        "alt": "",  # TODO: get alt text
-                        "image": img
-                    }
-                    for img in images
-                ]
+                    {"alt": "", "image": img} for img in images  # TODO: get alt text
+                ],
             }
             req = req.copy(update={"embed": embed})
 
         resp = await sess.record(req)
         print(resp)
-
-
