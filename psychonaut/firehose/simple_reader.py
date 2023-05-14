@@ -36,11 +36,14 @@ def iter_events(
 
 
 def iter_enriched_events(
-    messages: Iterable[bytes], err_callback: ERROR_CALLBACK_TYPE = noop_error_callback
+    messages: Iterable[bytes], err_callback: ERROR_CALLBACK_TYPE = noop_error_callback, with_messages=False
 ) -> Iterable[BaseModel]:
     for i, msg in enumerate(messages):
         try:
-            yield read_enriched_event(msg)
+            if with_messages:
+                yield read_enriched_event(msg), msg
+            else:
+                yield read_enriched_event(msg)
         except Exception as e:
             err_callback(i, e, msg)
 
